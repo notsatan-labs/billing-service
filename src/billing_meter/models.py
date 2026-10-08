@@ -46,6 +46,19 @@ class CostLineModel(BaseModel):
     cost: str
 
 
+class InvoiceResponse(BaseModel):
+    invoice_id: str
+    customer_id: str
+    period: str
+    period_start: str
+    period_end: str
+    closed_at: str
+    currency: str
+    lines: list[CostLineModel]
+    pricing_table: dict[str, str]
+    total: str
+
+
 class SummaryResponse(BaseModel):
     customer_id: str
     window: WindowInfo

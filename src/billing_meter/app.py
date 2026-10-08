@@ -20,11 +20,13 @@ from billing_meter.db import Database, DatabaseBusy
 from billing_meter.errors import ApiError, problem, validation_error
 from billing_meter.events import parse_json, validate_batch, validate_id
 from billing_meter.ingest import ingest_events
+from billing_meter.invoices import build_invoice, parse_period
 from billing_meter.models import (
     CostLineModel,
     EventResult,
     HealthResponse,
     IngestResponse,
+    InvoiceResponse,
     SummaryResponse,
     UsageLine,
     UsageResponse,
@@ -178,6 +180,37 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
             lines=cost_lines(costing),
             pricing_table=costing.pricing_table,
             total=format_cents(costing.total_cents),
+        )
+
+    @app.get(
+        "/v1/customers/{customer_id}/invoices/{period}",
+        response_model=InvoiceResponse,
+        responses={404: {"description": "Month not closed yet; see Retry-After"}},
+    )
+    def get_invoice(request: Request, customer_id: str, period: str) -> InvoiceResponse:
+        ctx = context(request)
+        customer_id = require_customer_id(customer_id)
+        year, month = parse_period(period)
+        with ctx.db.connect() as conn:
+            invoice = build_invoice(
+                conn,
+                customer_id,
+                year,
+                month,
+                now_fn=ctx.clock.now,
+                close_grace_seconds=ctx.settings.close_grace_seconds,
+            )
+        return InvoiceResponse(
+            invoice_id=invoice.invoice_id,
+            customer_id=invoice.customer_id,
+            period=invoice.period,
+            period_start=format_timestamp(invoice.start),
+            period_end=format_timestamp(invoice.end),
+            closed_at=format_timestamp(invoice.closed_at),
+            currency=CURRENCY,
+            lines=cost_lines(invoice.costing),
+            pricing_table=invoice.costing.pricing_table,
+            total=format_cents(invoice.costing.total_cents),
         )
 
     return app
