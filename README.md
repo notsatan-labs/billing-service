@@ -4,7 +4,7 @@ REST API for metering customer usage (API calls, compute minutes, storage, or an
 
 JSON in / JSON out. All timestamps, windows and billing months are **UTC**.
 
-> Status: `/health` and event ingestion are live; usage, summary and invoice endpoints are being implemented. This document is the contract the service will honor.
+> Status: `/health`, event ingestion and usage totals are live; summary and invoice endpoints are being implemented. This document is the contract the service will honor.
 
 ---
 

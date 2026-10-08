@@ -5,9 +5,9 @@ import sqlite3
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
@@ -18,9 +18,19 @@ from billing_meter.clock import Clock, SystemClock
 from billing_meter.config import Settings
 from billing_meter.db import Database, DatabaseBusy
 from billing_meter.errors import ApiError, problem, validation_error
-from billing_meter.events import parse_json, validate_batch
+from billing_meter.events import parse_json, validate_batch, validate_id
 from billing_meter.ingest import ingest_events
-from billing_meter.models import EventResult, HealthResponse, IngestResponse
+from billing_meter.models import (
+    EventResult,
+    HealthResponse,
+    IngestResponse,
+    UsageLine,
+    UsageResponse,
+    WindowInfo,
+)
+from billing_meter.timestamps import format_timestamp
+from billing_meter.usage import aggregate_usage, format_quantity
+from billing_meter.windows import Window, resolve_window
 
 
 class PrettyJSONResponse(JSONResponse):
@@ -120,7 +130,45 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         response.status_code = 201 if result.unchanged == 0 else 200
         return result
 
+    @app.get("/v1/customers/{customer_id}/usage", response_model=UsageResponse)
+    def get_usage(
+        request: Request,
+        customer_id: str,
+        window: str | None = None,
+        start: Annotated[str | None, Query(alias="from")] = None,
+        end: Annotated[str | None, Query(alias="to")] = None,
+    ) -> UsageResponse:
+        ctx = context(request)
+        customer_id = require_customer_id(customer_id)
+        resolved = resolve_window(window, start, end, now=ctx.clock.now())
+        with ctx.db.connect() as conn:
+            totals = aggregate_usage(conn, customer_id, resolved.start, resolved.end)
+        return UsageResponse(
+            customer_id=customer_id,
+            window=window_info(resolved),
+            usage=[
+                UsageLine(resource_type=resource, quantity=format_quantity(micros))
+                for resource, micros in totals.items()
+            ],
+        )
+
     return app
+
+
+def require_customer_id(raw: str) -> str:
+    customer_id, error = validate_id(raw)
+    if error is not None:
+        raise validation_error([problem(error, field="customer_id")])
+    assert customer_id is not None
+    return customer_id
+
+
+def window_info(window: Window) -> WindowInfo:
+    return WindowInfo(
+        name=window.name,
+        start=format_timestamp(window.start),
+        end=format_timestamp(window.end),
+    )
 
 
 def ingest_request(ctx: AppContext, raw: bytes) -> IngestResponse:

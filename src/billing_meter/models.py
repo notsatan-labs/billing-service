@@ -20,3 +20,20 @@ class IngestResponse(BaseModel):
     created: int
     unchanged: int
     results: list[EventResult]
+
+
+class WindowInfo(BaseModel):
+    name: Literal["today", "month"] | None
+    start: str
+    end: str
+
+
+class UsageLine(BaseModel):
+    resource_type: str
+    quantity: str
+
+
+class UsageResponse(BaseModel):
+    customer_id: str
+    window: WindowInfo
+    usage: list[UsageLine]
