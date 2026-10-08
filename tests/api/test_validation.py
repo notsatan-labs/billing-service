@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -177,6 +178,10 @@ def test_future_timestamp_within_tolerance(client: TestClient) -> None:
         b"\xff\xfe\xfa",
         b'{"events": [{"quantity": ' + b"9" * 5000 + b"}]}",
         b'{"events": ' + b"[" * 100_000 + b"]" * 100_000 + b"}",
+        b'{"events": [{"quantity": 1e9999999999999999999999}]}',
+        b'{"events": [{"quantity": 1e-9999999999999999999999}]}',
+        b'{"events": [], "extra": 1e1000000000000000000}',
+        b'{"events": [], "events": []}',
     ],
     ids=[
         "empty",
@@ -186,10 +191,22 @@ def test_future_timestamp_within_tolerance(client: TestClient) -> None:
         "bad-utf8",
         "huge-int",
         "deep",
+        "huge-exponent",
+        "tiny-exponent",
+        "huge-exponent-unknown-field",
+        "duplicate-top-level-key",
     ],
 )
 def test_malformed_body(client: TestClient, db_path: Path, body: bytes) -> None:
     assert_rejected(post_raw(client, body), db_path)
+
+
+def test_duplicate_event_key_is_rejected(client: TestClient, db_path: Path) -> None:
+    event = json.dumps(make_event())[:-1] + ', "quantity": -1}'
+    body = assert_rejected(
+        post_raw(client, f'{{"events": [{event}]}}'.encode()), db_path
+    )
+    assert "duplicate key 'quantity'" in body["error"]["problems"][0]["message"]
 
 
 @pytest.mark.parametrize(

@@ -6,7 +6,7 @@ import json
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from billing_meter.domain.errors import Problem, problem, validation_error
@@ -49,10 +49,31 @@ def _reject_constant(name: str) -> Any:
     raise ValueError(f"{name} is not a valid JSON number")
 
 
+def _parse_float(text: str) -> Decimal:
+    try:
+        return Decimal(text)
+    except InvalidOperation:
+        raise ValueError(f"number {text[:32]!r} is out of range") from None
+
+
+def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate key {key[:64]!r}")
+        result[key] = value
+    return result
+
+
 def parse_json(raw: bytes) -> Any:
     """Decode JSON keeping numbers exact; any failure becomes a 400."""
     try:
-        return json.loads(raw, parse_float=Decimal, parse_constant=_reject_constant)
+        return json.loads(
+            raw,
+            parse_float=_parse_float,
+            parse_constant=_reject_constant,
+            object_pairs_hook=_reject_duplicate_keys,
+        )
     except (ValueError, RecursionError) as exc:
         message = "nesting is too deep" if isinstance(exc, RecursionError) else exc
         raise validation_error([problem(f"Malformed JSON: {message}")]) from None

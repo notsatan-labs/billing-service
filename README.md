@@ -158,7 +158,7 @@ All five fields are required.
 | `quantity` | A JSON number greater than 0 and at most 1,000,000,000, with at most 6 decimal places. Strings like `"10"` and booleans are rejected |
 | `timestamp` | RFC 3339, `YYYY-MM-DDTHH:MM:SS[.ffffff]` followed by `Z` or `±HH:MM` (at most 6 fractional-second digits). Converted to UTC. Must not be more than 5 minutes in the future (by default) |
 
-Unknown extra fields on an event are ignored.
+Unknown extra fields on an event are ignored. A body that isn't valid JSON, repeats a key within an object, or holds a number too large to represent is rejected with `400`.
 
 ### How batches behave
 
