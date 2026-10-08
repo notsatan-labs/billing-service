@@ -28,6 +28,46 @@ pip install -r requirements.txt
 uvicorn billing_meter.main:app --host 127.0.0.1 --port 8000
 ```
 
+### Demo server with sample data
+
+```bash
+make test-run       # seeds data/demo.db, then serves it on http://127.0.0.1:8000
+```
+
+`make test-run` builds a fresh, throwaway database with random but realistic history, then starts the server on it (no auto-reload). Each run reseeds; your real database (`data/billing-meter.db`) is never touched.
+
+- **1,000 customers**, `cust_0001` … `cust_1000`, each using **5–50 resource types** (e.g. `api_calls`, `gpu_minutes`, `storage_gb_hours`).
+- **10–100 events per resource type**, spread over the **last 120 days** with a busier-by-day traffic pattern, so recent months are closed and have invoices. That's roughly 1.5 million events; seeding takes about 15 seconds.
+- Customers differ in size, and quantities mix whole counts with fractional amounts.
+- Seeding writes history straight to the database, because the API rightly refuses new events for closed months. The live API works as normal on top of it, so you can also `POST` new events.
+
+The seed is random each run and printed, so you can reproduce a dataset. Everything is overridable:
+
+```bash
+make test-run SEED=42                 # same data every time
+make test-run CUSTOMERS=50 PORT=9000  # smaller dataset, another port
+make test-run HOST=0.0.0.0            # reachable from outside a container
+```
+
+With it running, open these in a browser (responses are indented JSON), or use curl:
+
+```bash
+curl -sS http://127.0.0.1:8000/health
+curl -sS 'http://127.0.0.1:8000/v1/customers/cust_0001/usage?window=today'
+curl -sS 'http://127.0.0.1:8000/v1/customers/cust_0001/summary?window=month'
+curl -sS 'http://127.0.0.1:8000/v1/customers/cust_0042/usage?from=2026-08-01T00:00:00Z&to=2026-08-31T23:59:59.999999Z'
+
+# Last month's invoice (ready) and this month's (404 + Retry-After until it closes)
+curl -sS "http://127.0.0.1:8000/v1/customers/cust_0042/invoices/$(date -u -d "$(date -u +%Y-%m-01) -1 day" +%Y-%m)"
+curl -sS -i "http://127.0.0.1:8000/v1/customers/cust_0042/invoices/$(date -u +%Y-%m)"
+
+# Add an event on top of the seeded data
+curl -sS -X POST http://127.0.0.1:8000/v1/events -H 'Content-Type: application/json' \
+  -d "{\"events\": [{\"event_id\": \"live_1\", \"customer_id\": \"cust_0001\", \"resource_type\": \"api_calls\", \"quantity\": 25, \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}]}"
+```
+
+Interactive API docs are at http://127.0.0.1:8000/docs. (`date -d` above is GNU date; on macOS, type the months in by hand.)
+
 `requirements.txt` is **generated** — do not edit by hand. It is refreshed by `make freeze`, `make local-setup`, and a pre-commit hook when `pyproject.toml` / `uv.lock` change.
 
 ### Configuration
@@ -269,11 +309,12 @@ Retry-After: 21900
 |---------|---------|
 | `make local-setup` | One-shot: uv, dependencies, pre-commit, freeze `requirements.txt` |
 | `make run` | Start the development server on 127.0.0.1:8000 (auto-reload, single worker — SQLite is the store) |
+| `make test-run` | Seed a random demo database (1,000 customers) and serve it live; see "Demo server" |
 | `make test` | Run tests |
 | `make lint` | Run every pre-commit check on the whole repo (same as CI) |
 | `make format` | Apply black + ruff fixes |
 | `make freeze` | Regenerate `requirements.txt` from the lockfile |
-| `make clean` | Remove caches and the local database |
+| `make clean` | Remove caches, the local database and the demo database |
 
 CI runs on pushes to `main`/`master` and on pull requests: lint (lockfile check + every pre-commit hook, which also catches a stale `requirements.txt`) and tests, with uv caching. Pre-commit runs black, ruff, file hygiene hooks, and freezes `requirements.txt` when dependency inputs change.
 

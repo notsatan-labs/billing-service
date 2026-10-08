@@ -118,6 +118,7 @@ flowchart LR
         uv["uv<br/>pyproject.toml · uv.lock"]
         pc["pre-commit<br/>hygiene hooks · black · ruff<br/>freeze requirements.txt"]
         commit["git-commit skill<br/>validate_commit_message.py"]
+        demo["make test-run<br/>demo.py seeds data/demo.db<br/>(1,000 customers, ~1.5M events)<br/>then serves it with uvicorn"]
     end
     subgraph gh["GitHub — notsatan-labs/billing-service"]
         master[(master)]
@@ -128,6 +129,7 @@ flowchart LR
 
     dev --> make --> uv
     make --> pc
+    make --> demo
     dev --> commit -->|"git commit (hooks run)"| pc
     commit -->|"git push sha:refs/heads/master"| master
     master --> lint

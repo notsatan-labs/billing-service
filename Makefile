@@ -1,6 +1,11 @@
-.PHONY: local-setup format lint test run freeze clean
+.PHONY: local-setup format lint test run test-run freeze clean
 
 UV ?= $(shell command -v uv 2>/dev/null || echo "$(HOME)/.local/bin/uv")
+DEMO_DB ?= data/demo.db
+HOST ?= 127.0.0.1
+PORT ?= 8000
+SEED ?=
+CUSTOMERS ?= 1000
 
 local-setup:
 	@if ! command -v uv >/dev/null 2>&1 && [ ! -x "$(HOME)/.local/bin/uv" ]; then \
@@ -22,7 +27,13 @@ test:
 	$(UV) run pytest
 
 run:
-	$(UV) run uvicorn billing_meter.main:app --host 127.0.0.1 --port 8000 --reload
+	$(UV) run uvicorn billing_meter.main:app --host $(HOST) --port $(PORT) --reload
+
+test-run:
+	$(UV) run --locked python -m billing_meter.demo --db $(DEMO_DB) \
+		--customers $(CUSTOMERS) $(if $(SEED),--seed $(SEED))
+	BILLING_METER_DB_PATH=$(DEMO_DB) $(UV) run --locked \
+		uvicorn billing_meter.main:app --host $(HOST) --port $(PORT)
 
 freeze:
 	$(UV) export --locked --no-dev --no-hashes --no-editable -o requirements.txt
@@ -32,3 +43,4 @@ clean:
 	rm -rf src/*.egg-info *.egg-info
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	rm -f data/billing-meter.db data/billing-meter.db-wal data/billing-meter.db-shm
+	rm -f $(DEMO_DB) $(DEMO_DB)-wal $(DEMO_DB)-shm
