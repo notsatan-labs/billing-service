@@ -260,7 +260,7 @@ A clock abstraction (injectable "now") is used everywhere so tests can pin time.
 3. ~~Usage aggregation + UTC window helpers + out-of-order test~~ (done)
 4. ~~Deterministic pricing + summary + tests~~ (done)
 5. ~~Invoice endpoint + tests~~ (done)
-6. Update README examples against the live API
+6. ~~Update README examples against the live API~~ (done)
 
 ## Open items
 
