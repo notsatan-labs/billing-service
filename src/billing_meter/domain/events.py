@@ -9,8 +9,8 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
-from billing_meter.errors import Problem, problem, validation_error
-from billing_meter.timestamps import format_timestamp, parse_timestamp
+from billing_meter.domain.errors import Problem, problem, validation_error
+from billing_meter.domain.timestamps import format_timestamp, parse_timestamp
 
 ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_\-.:]*", re.ASCII)
 ID_MAX_LENGTH = 128

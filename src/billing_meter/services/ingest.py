@@ -5,10 +5,14 @@ from collections.abc import Sequence
 from typing import Literal
 
 from billing_meter.clock import Clock
-from billing_meter.db import immediate
-from billing_meter.errors import Problem, conflict_error, problem
-from billing_meter.events import Event
-from billing_meter.timestamps import format_timestamp, is_month_closed, period_label
+from billing_meter.domain.errors import Problem, conflict_error, problem
+from billing_meter.domain.events import Event
+from billing_meter.domain.timestamps import (
+    format_timestamp,
+    is_month_closed,
+    period_label,
+)
+from billing_meter.storage.db import immediate
 
 Outcome = Literal["created", "unchanged"]
 

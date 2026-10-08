@@ -215,11 +215,27 @@ A clock abstraction (injectable "now") is used everywhere so tests can pin time.
     skills/{git-commit,monitor-workflow}/SKILL.md
     git-commit/scripts/
     monitor-workflow/
+  docs/ARCHITECTURE.md
   src/billing_meter/
-    __init__.py
-    main.py
-    ...
+    __init__.py           # version
+    main.py               # uvicorn entry: app = create_app()
+    config.py             # Settings from BILLING_METER_* env
+    clock.py              # injectable Clock
+    api/                  # HTTP layer
+      app.py              # create_app, lifespan, routers
+      context.py          # AppContext, PrettyJSONResponse
+      errors.py           # exception handlers
+      schemas.py          # Pydantic response models
+      routes/{health,events,customers}.py
+    domain/               # pure rules, no I/O
+      errors.py events.py pricing.py timestamps.py windows.py
+    services/             # use cases over a connection
+      ingest.py usage.py invoices.py
+    storage/db.py         # SQLite connections, schema, locking
+    demo/seed.py          # `make test-run` data generator
   tests/
+    conftest.py support.py
+    unit/ api/ demo/
   data/                   # gitignored DB
 ```
 

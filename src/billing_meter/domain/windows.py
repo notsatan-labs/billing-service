@@ -5,8 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from billing_meter.errors import Problem, problem, validation_error
-from billing_meter.timestamps import month_start, next_month_start, parse_timestamp
+from billing_meter.domain.errors import Problem, problem, validation_error
+from billing_meter.domain.timestamps import (
+    month_start,
+    next_month_start,
+    parse_timestamp,
+)
 
 NAMED_WINDOWS = ("today", "month")
 _LAST_MICROSECOND = timedelta(microseconds=1)

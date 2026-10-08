@@ -10,7 +10,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
 
-from billing_meter.events import MICROS
+from billing_meter.domain.events import MICROS
 
 CURRENCY = "USD"
 # Unit prices are whole ten-thousandths of a dollar: 1 → $0.0001, 100 → $0.0100.

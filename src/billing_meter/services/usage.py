@@ -4,8 +4,8 @@ import sqlite3
 from collections import defaultdict
 from datetime import datetime
 
-from billing_meter.events import MICROS
-from billing_meter.timestamps import format_timestamp
+from billing_meter.domain.events import MICROS
+from billing_meter.domain.timestamps import format_timestamp
 
 _SUM_SQL = (
     "SELECT resource_type, SUM(quantity_micros) FROM events "

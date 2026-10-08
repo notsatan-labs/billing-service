@@ -1,3 +1,3 @@
-from billing_meter.app import create_app
+from billing_meter.api import create_app
 
 app = create_app()

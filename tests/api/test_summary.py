@@ -5,14 +5,14 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from billing_meter.pricing import (
+from billing_meter.domain.pricing import (
     cost_cents,
     format_cents,
     format_price,
     price_usage,
     unit_price_ticks,
 )
-from conftest import make_event
+from support import make_event
 
 
 def summary(client: TestClient, customer: str = "cust_a", **params: str) -> Any:
@@ -31,7 +31,7 @@ def test_unit_price_is_deterministic_and_in_range() -> None:
 
 def test_unit_price_is_stable_across_processes() -> None:
     script = (
-        "from billing_meter.pricing import unit_price_ticks;"
+        "from billing_meter.domain.pricing import unit_price_ticks;"
         "print(unit_price_ticks('api_calls'), unit_price_ticks('storage-gb'))"
     )
     output = subprocess.run(

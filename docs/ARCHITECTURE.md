@@ -6,29 +6,29 @@
 flowchart LR
     client([API client])
 
-    subgraph app["FastAPI app — app.py (create_app)"]
+    subgraph app["FastAPI app — api/ (create_app in api/app.py)"]
         direction TB
-        routes["Routes<br/>POST /v1/events<br/>GET /v1/customers/{id}/usage<br/>GET /v1/customers/{id}/summary<br/>GET /v1/customers/{id}/invoices/{YYYY-MM}<br/>GET /health"]
-        handlers["Error handlers<br/>ApiError · DatabaseBusy → 503<br/>422 → 400 · HTTP errors<br/>(errors.py)"]
-        pretty["PrettyJSONResponse<br/>indented JSON"]
+        routes["Routes (api/routes/)<br/>POST /v1/events<br/>GET /v1/customers/{id}/usage<br/>GET /v1/customers/{id}/summary<br/>GET /v1/customers/{id}/invoices/{YYYY-MM}<br/>GET /health"]
+        handlers["Error handlers<br/>ApiError · DatabaseBusy → 503<br/>422 → 400 · HTTP errors<br/>(api/errors.py)"]
+        pretty["PrettyJSONResponse<br/>indented JSON<br/>(api/context.py)"]
     end
 
-    subgraph domain["Domain modules"]
+    subgraph domain["Domain rules (domain/) and use cases (services/)"]
         direction TB
-        events["events.py<br/>exact-decimal JSON parse<br/>batch + field validation"]
-        ingest["ingest.py<br/>classify created / unchanged<br/>conflicts · closed months"]
-        windows["windows.py<br/>today · month · from/to<br/>(inclusive, UTC)"]
-        usage["usage.py<br/>SUM per resource<br/>Python fallback on overflow"]
-        pricing["pricing.py<br/>SHA-256 unit prices<br/>integer cent rounding"]
-        invoices["invoices.py<br/>period parse · readiness<br/>Retry-After"]
-        timestamps["timestamps.py<br/>strict RFC 3339<br/>fixed-width UTC · month math"]
+        events["domain/events.py<br/>exact-decimal JSON parse<br/>batch + field validation"]
+        ingest["services/ingest.py<br/>classify created / unchanged<br/>conflicts · closed months"]
+        windows["domain/windows.py<br/>today · month · from/to<br/>(inclusive, UTC)"]
+        usage["services/usage.py<br/>SUM per resource<br/>Python fallback on overflow"]
+        pricing["domain/pricing.py<br/>SHA-256 unit prices<br/>integer cent rounding"]
+        invoices["services/invoices.py<br/>period parse · readiness<br/>Retry-After"]
+        timestamps["domain/timestamps.py<br/>strict RFC 3339<br/>fixed-width UTC · month math"]
     end
 
     subgraph infra["Infrastructure"]
         direction TB
         config["config.py<br/>Settings from BILLING_METER_* env"]
         clock["clock.py<br/>injectable Clock"]
-        db["db.py<br/>connection per request<br/>BEGIN IMMEDIATE · busy → DatabaseBusy"]
+        db["storage/db.py<br/>connection per request<br/>BEGIN IMMEDIATE · busy → DatabaseBusy"]
     end
 
     sqlite[("SQLite file (WAL, synchronous=FULL)<br/>events(event_id PK, customer_id,<br/>resource_type, quantity_micros,<br/>timestamp, ingested_at)<br/>index (customer_id, timestamp)")]
@@ -66,8 +66,8 @@ sequenceDiagram
     autonumber
     participant C as Client
     participant R as POST /v1/events
-    participant V as events.py
-    participant I as ingest.py
+    participant V as domain/events.py
+    participant I as services/ingest.py
     participant D as SQLite
 
     C->>R: {"events": [...]}
@@ -118,7 +118,7 @@ flowchart LR
         uv["uv<br/>pyproject.toml · uv.lock"]
         pc["pre-commit<br/>hygiene hooks · black · ruff<br/>freeze requirements.txt"]
         commit["git-commit skill<br/>validate_commit_message.py"]
-        demo["make test-run<br/>demo.py seeds data/demo.db<br/>(1,000 customers, ~1.5M events)<br/>then serves it with uvicorn"]
+        demo["make test-run<br/>demo/seed.py seeds data/demo.db<br/>(1,000 customers, ~1.5M events)<br/>then serves it with uvicorn"]
     end
     subgraph gh["GitHub — notsatan-labs/billing-service"]
         master[(master)]

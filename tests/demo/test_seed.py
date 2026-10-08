@@ -5,12 +5,12 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from billing_meter.app import create_app
+from billing_meter.api import create_app
 from billing_meter.config import Settings
-from billing_meter.demo import SeedConfig, seed
-from billing_meter.events import ID_PATTERN, MICROS, RESOURCE_PATTERN
-from billing_meter.timestamps import parse_timestamp
-from conftest import FrozenClock
+from billing_meter.demo.seed import SeedConfig, seed
+from billing_meter.domain.events import ID_PATTERN, MICROS, RESOURCE_PATTERN
+from billing_meter.domain.timestamps import parse_timestamp
+from support import FrozenClock
 
 NOW = datetime(2026, 10, 8, 12, 0, tzinfo=UTC)
 CONFIG = SeedConfig(customers=20, days=60, seed=7)

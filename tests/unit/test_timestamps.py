@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from billing_meter.timestamps import (
+from billing_meter.domain.timestamps import (
     format_timestamp,
     is_month_closed,
     month_closes_at,

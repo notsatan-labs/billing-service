@@ -5,8 +5,8 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from billing_meter.events import decimal_places, validate_quantity
-from conftest import make_event, stored_rows
+from billing_meter.domain.events import decimal_places, validate_quantity
+from support import make_event, stored_rows
 
 
 def post_raw(client: TestClient, body: bytes) -> Any:
