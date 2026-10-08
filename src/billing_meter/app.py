@@ -21,12 +21,21 @@ from billing_meter.errors import ApiError, problem, validation_error
 from billing_meter.events import parse_json, validate_batch, validate_id
 from billing_meter.ingest import ingest_events
 from billing_meter.models import (
+    CostLineModel,
     EventResult,
     HealthResponse,
     IngestResponse,
+    SummaryResponse,
     UsageLine,
     UsageResponse,
     WindowInfo,
+)
+from billing_meter.pricing import (
+    CURRENCY,
+    Costing,
+    format_cents,
+    format_price,
+    price_usage,
 )
 from billing_meter.timestamps import format_timestamp
 from billing_meter.usage import aggregate_usage, format_quantity
@@ -138,11 +147,9 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         start: Annotated[str | None, Query(alias="from")] = None,
         end: Annotated[str | None, Query(alias="to")] = None,
     ) -> UsageResponse:
-        ctx = context(request)
-        customer_id = require_customer_id(customer_id)
-        resolved = resolve_window(window, start, end, now=ctx.clock.now())
-        with ctx.db.connect() as conn:
-            totals = aggregate_usage(conn, customer_id, resolved.start, resolved.end)
+        customer_id, resolved, totals = window_totals(
+            context(request), customer_id, window, start, end
+        )
         return UsageResponse(
             customer_id=customer_id,
             window=window_info(resolved),
@@ -152,7 +159,54 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
             ],
         )
 
+    @app.get("/v1/customers/{customer_id}/summary", response_model=SummaryResponse)
+    def get_summary(
+        request: Request,
+        customer_id: str,
+        window: str | None = None,
+        start: Annotated[str | None, Query(alias="from")] = None,
+        end: Annotated[str | None, Query(alias="to")] = None,
+    ) -> SummaryResponse:
+        customer_id, resolved, totals = window_totals(
+            context(request), customer_id, window, start, end
+        )
+        costing = price_usage(totals)
+        return SummaryResponse(
+            customer_id=customer_id,
+            window=window_info(resolved),
+            currency=CURRENCY,
+            lines=cost_lines(costing),
+            pricing_table=costing.pricing_table,
+            total=format_cents(costing.total_cents),
+        )
+
     return app
+
+
+def window_totals(
+    ctx: AppContext,
+    customer_id: str,
+    window: str | None,
+    start: str | None,
+    end: str | None,
+) -> tuple[str, Window, dict[str, int]]:
+    customer_id = require_customer_id(customer_id)
+    resolved = resolve_window(window, start, end, now=ctx.clock.now())
+    with ctx.db.connect() as conn:
+        totals = aggregate_usage(conn, customer_id, resolved.start, resolved.end)
+    return customer_id, resolved, totals
+
+
+def cost_lines(costing: Costing) -> list[CostLineModel]:
+    return [
+        CostLineModel(
+            resource_type=line.resource_type,
+            quantity=format_quantity(line.quantity_micros),
+            unit_price=format_price(line.price_ticks),
+            cost=format_cents(line.cost_cents),
+        )
+        for line in costing.lines
+    ]
 
 
 def require_customer_id(raw: str) -> str:

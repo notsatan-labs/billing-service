@@ -37,3 +37,19 @@ class UsageResponse(BaseModel):
     customer_id: str
     window: WindowInfo
     usage: list[UsageLine]
+
+
+class CostLineModel(BaseModel):
+    resource_type: str
+    quantity: str
+    unit_price: str
+    cost: str
+
+
+class SummaryResponse(BaseModel):
+    customer_id: str
+    window: WindowInfo
+    currency: str
+    lines: list[CostLineModel]
+    pricing_table: dict[str, str]
+    total: str

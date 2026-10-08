@@ -258,7 +258,7 @@ A clock abstraction (injectable "now") is used everywhere so tests can pin time.
 1. ~~Scaffold uv + Makefile + git + pre-commit + CI + README contract~~ (done)
 2. ~~Config + clock + DB helpers + decimal parsing + validation + ingest + atomic batch + HTTP status rules + closed-month enforcement on ingest + tests~~ (done)
 3. ~~Usage aggregation + UTC window helpers + out-of-order test~~ (done)
-4. Deterministic pricing + summary + tests
+4. ~~Deterministic pricing + summary + tests~~ (done)
 5. Invoice endpoint + tests
 6. Update README examples against the live API
 
