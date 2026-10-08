@@ -1,10 +1,3 @@
-"""App entrypoint stub — routes land in a later phase."""
+from billing_meter.app import create_app
 
-from fastapi import FastAPI
-
-app = FastAPI(title="billing-meter")
-
-
-@app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+app = create_app()
