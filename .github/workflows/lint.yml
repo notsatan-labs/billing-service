@@ -1,0 +1,41 @@
+name: Lint
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
+
+      - name: Set up Python
+        run: uv python install 3.14
+
+      - name: Lockfile matches pyproject.toml
+        run: uv lock --check
+
+      - name: Install dependencies
+        run: uv sync --all-groups --locked
+
+      - name: Cache pre-commit environments
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-py3.14-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Pre-commit (black, ruff, hygiene, requirements.txt freeze)
+        run: uv run --locked pre-commit run --all-files --show-diff-on-failure

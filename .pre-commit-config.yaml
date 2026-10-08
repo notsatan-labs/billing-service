@@ -1,0 +1,42 @@
+default_language_version:
+  python: python3.14
+
+# Question.md is read-only source material — hooks must never rewrite it
+exclude: ^inputs/Question\.md$
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # black / ruff run from the project venv so their versions come from uv.lock
+  - repo: local
+    hooks:
+      - id: black
+        name: black
+        language: system
+        types: [python]
+        entry: bash -c 'export PATH="$PATH:$HOME/.local/bin"; exec uv run --locked black "$@"' --
+
+      - id: ruff
+        name: ruff
+        language: system
+        types: [python]
+        entry: bash -c 'export PATH="$PATH:$HOME/.local/bin"; exec uv run --locked ruff check --fix "$@"' --
+
+      - id: freeze-requirements
+        name: freeze requirements.txt
+        language: system
+        pass_filenames: false
+        files: ^(pyproject\.toml|uv\.lock)$
+        entry: bash -c 'export PATH="$PATH:$HOME/.local/bin"; exec uv export --locked --no-dev --no-hashes --no-editable -o requirements.txt'
