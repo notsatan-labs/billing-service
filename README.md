@@ -281,4 +281,4 @@ CI runs on pushes to `main`/`master` and on pull requests: lint (lockfile check 
 
 ## Design notes
 
-See [inputs/PLAN.md](inputs/PLAN.md) for the full implementation plan (schema, status codes, testing strategy).
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for architecture diagrams, and [inputs/PLAN.md](inputs/PLAN.md) for the full implementation plan (schema, status codes, testing strategy).
